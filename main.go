@@ -69,8 +69,6 @@ func main() {
 		}
 		olddata, err = ioutil.ReadFile(outfile)
 		if err == nil && bytes.Compare(olddata, newdata.Bytes()) == 0 {
-			// Identical
-			log.Println("output data not changed")
 			os.Exit(0)
 		}
 		if err := ioutil.WriteFile(outfile, newdata.Bytes(), 0644); err != nil {
