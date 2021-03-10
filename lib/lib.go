@@ -43,8 +43,10 @@ func newRecordFromModel(s pdnsmodel.Record) dnsRecord {
 		TTL:  int(s.TTL.Int32),
 	}
 	switch s.Type.String {
-	case "A", "AAAA", "SOA", "PTR":
+	case "A", "AAAA", "PTR":
 		r.Data = s.Content.String
+	case "SOA":
+		r.Data = fmt.Sprintf("%s admin.%s %s", NormalizeFQDN(s.Domain.Name), NormalizeFQDN(s.Domain.Name), s.Content.String)
 	case "MX", "SRV":
 		r.Data = fmt.Sprintf("%d %s", s.Prio.Int32, s.Content.String)
 	}
