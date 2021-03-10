@@ -73,14 +73,10 @@ func main() {
 			log.Println("output data not changed")
 			os.Exit(0)
 		}
-		outf, err := os.CreateTemp(wd, "pdns2ub")
-		if err != nil {
+		if err := ioutil.WriteFile(outfile, newdata.Bytes(), 0644); err != nil {
 			log.Fatalf("err %v", err)
 			os.Exit(-1)
 		}
-		outf.Write(newdata.Bytes())
-		outf.Close()
-		os.Rename(outf.Name(), outfile)
 		os.Exit(1)
 	} else {
 		os.Stdout.Write(newdata.Bytes())
