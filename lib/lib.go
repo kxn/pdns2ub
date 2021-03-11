@@ -229,8 +229,8 @@ func (d *DNSData) FindNode(name string, create bool) *DNSNode {
 // FindDomainNode do
 func (d *DNSData) FindDomainNode(name string) *DNSNode {
 	nameTokens := reverseSlice(strings.Split(strings.Trim(name, "."), "."))
-	for i := 0; i < len(nameTokens); i++ {
-		n := d.Root.findNode(nameTokens[i:], false)
+	for i := len(nameTokens) - 1; i > 0; i-- {
+		n := d.Root.findNode(nameTokens[:i], false)
 		if n != nil {
 			return n
 		}
