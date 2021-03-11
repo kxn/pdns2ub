@@ -15,7 +15,7 @@ const (
 	// TypeRedirect redirect
 	TypeRedirect = "redirect"
 	// TypeTransparent do
-	TypeTransparent = "TypeTransparent"
+	TypeTransparent = "typetransparent"
 	// TypeStatic do
 	TypeStatic = "static"
 	// TypeNone do
