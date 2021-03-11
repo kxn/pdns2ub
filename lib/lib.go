@@ -12,13 +12,18 @@ import (
 )
 
 const (
-	typeRedirect    = "redirect"
-	typeTransparent = "typetransparent"
-	typeStatic      = "static"
-	typeNone        = ""
+	// TypeRedirect redirect
+	TypeRedirect = "redirect"
+	// TypeTransparent do
+	TypeTransparent = "TypeTransparent"
+	// TypeStatic do
+	TypeStatic = "static"
+	// TypeNone do
+	TypeNone = ""
 )
 
-type dnsRecord struct {
+// DNSRecord do
+type DNSRecord struct {
 	Type string // A AAAA NS etc
 	TTL  int
 	Data string
@@ -33,12 +38,12 @@ func reverseSlice(in []string) []string {
 	return out
 }
 
-func (r *dnsRecord) toString() string {
+func (r *DNSRecord) toString() string {
 	return fmt.Sprintf("%d IN %s %s", r.TTL, r.Type, r.Data)
 }
 
-func newRecordFromModel(s pdnsmodel.Record) *dnsRecord {
-	r := dnsRecord{
+func newRecordFromModel(s pdnsmodel.Record) *DNSRecord {
+	r := DNSRecord{
 		Type: s.Type.String,
 		TTL:  int(s.TTL.Int32),
 	}
@@ -60,12 +65,13 @@ func newRecordFromModel(s pdnsmodel.Record) *dnsRecord {
 	return &r
 }
 
-type dnsRecords map[string][]dnsRecord
+// DNSRecords do
+type DNSRecords map[string][]DNSRecord
 
-func (rs dnsRecords) addRecord(r dnsRecord) {
+func (rs DNSRecords) addRecord(r DNSRecord) {
 	_, ok := rs[r.Type]
 	if !ok {
-		rs[r.Type] = []dnsRecord{}
+		rs[r.Type] = []DNSRecord{}
 	}
 	// dedup
 	for _, v := range rs[r.Type] {
@@ -76,12 +82,12 @@ func (rs dnsRecords) addRecord(r dnsRecord) {
 	rs[r.Type] = append(rs[r.Type], r)
 }
 
-func (rs dnsRecords) hasType(t string) bool {
+func (rs DNSRecords) hasType(t string) bool {
 	_, ok := rs[t]
 	return ok
 }
 
-func (rs dnsRecords) keys() []string {
+func (rs DNSRecords) keys() []string {
 	ret := []string{}
 	for k := range rs {
 		ret = append(ret, k)
@@ -105,7 +111,7 @@ func (ns dnsNodeChildren) keys() []string {
 type DNSNode struct {
 	Name       string
 	Children   dnsNodeChildren
-	Data       dnsRecords
+	Data       DNSRecords
 	Parent     *DNSNode
 	DomainType string
 }
@@ -114,18 +120,18 @@ func newDNSNode(name string, parent *DNSNode) *DNSNode {
 	return &DNSNode{
 		Name:       name,
 		Children:   dnsNodeChildren{},
-		Data:       dnsRecords{},
+		Data:       DNSRecords{},
 		Parent:     parent,
-		DomainType: typeNone,
+		DomainType: TypeNone,
 	}
 }
 
 func (n *DNSNode) outputConfig(f io.Writer) {
-	if n.DomainType != typeNone {
+	if n.DomainType != TypeNone {
 		fmt.Fprintf(f, "\nlocal-zone: \"%s\" %s\n", n.FullPath(), n.DomainType)
 		n.outputData(f)
 	}
-	if n.DomainType != typeNone {
+	if n.DomainType != TypeNone {
 		for _, k := range n.Children.keys() {
 			n.Children[k].outputSubrecords(f)
 		}
@@ -144,7 +150,7 @@ func (n *DNSNode) outputData(f io.Writer) {
 }
 
 func (n *DNSNode) outputSubrecords(f io.Writer) {
-	if n.DomainType != typeNone {
+	if n.DomainType != TypeNone {
 		return
 	}
 	n.outputData(f)
@@ -153,14 +159,14 @@ func (n *DNSNode) outputSubrecords(f io.Writer) {
 	}
 }
 
-func (n *DNSNode) addChild(tokens []string, data dnsRecord) {
+func (n *DNSNode) addChild(tokens []string, data DNSRecord) {
 	c := ""
 	if len(tokens) > 0 {
 		c = tokens[0]
 		if c == "*" {
 			c = ""
 			tokens = []string{}
-			n.DomainType = typeRedirect
+			n.DomainType = TypeRedirect
 		}
 	}
 	if c == "" {
@@ -210,11 +216,13 @@ func newDNSData() *DNSData {
 	}
 }
 
-func (d *DNSData) addRecord(name string, data dnsRecord) {
+// AddRecord add the record
+func (d *DNSData) AddRecord(name string, data DNSRecord) {
 	d.Root.addChild(reverseSlice(strings.Split(name, ".")), data)
 }
 
-func (d *DNSData) findNode(name string, create bool) *DNSNode {
+// FindNode do
+func (d *DNSData) FindNode(name string, create bool) *DNSNode {
 	return d.Root.findNode(reverseSlice(strings.Split(name, ".")), create)
 }
 
@@ -222,28 +230,28 @@ func (d *DNSData) addModel(r pdnsmodel.Record) {
 	domainType := ""
 	switch r.Domain.Type {
 	case "MASTER":
-		domainType = typeStatic
+		domainType = TypeStatic
 	case "NATIVE":
-		domainType = typeTransparent
+		domainType = TypeTransparent
 	default:
 		// do nothing, this is not a domain that we can handle
 		return
 	}
 	if rc := newRecordFromModel(r); rc != nil {
-		d.addRecord(r.Name.String, *rc)
+		d.AddRecord(r.Name.String, *rc)
 	}
-	dm := d.findNode(r.Domain.Name, true)
-	if dm.DomainType == typeNone {
+	dm := d.FindNode(r.Domain.Name, true)
+	if dm.DomainType == TypeNone {
 		dm.DomainType = domainType
 	}
 }
 
 func (d *DNSData) addTypeTransparentDomain(n *DNSNode, lastType string) {
-	if n.DomainType == typeNone && lastType == typeRedirect {
-		n.DomainType = typeTransparent
+	if n.DomainType == TypeNone && lastType == TypeRedirect {
+		n.DomainType = TypeTransparent
 	}
 	currentType := n.DomainType
-	if currentType == typeNone {
+	if currentType == TypeNone {
 		currentType = lastType
 	}
 	for _, k := range n.Children.keys() {
@@ -264,7 +272,7 @@ func LoadDataFromMySQL(dsn string) (*DNSData, error) {
 		d.addModel(i)
 	}
 	// find all domains that need to be treated as transparent domain
-	d.addTypeTransparentDomain(d.Root, typeNone)
+	d.addTypeTransparentDomain(d.Root, TypeNone)
 	return d, nil
 }
 
