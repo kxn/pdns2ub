@@ -218,17 +218,17 @@ func newDNSData() *DNSData {
 
 // AddRecord add the record
 func (d *DNSData) AddRecord(name string, data DNSRecord) {
-	d.Root.addChild(reverseSlice(strings.Split(name, ".")), data)
+	d.Root.addChild(reverseSlice(strings.Split(strings.Trim(name, "."), ".")), data)
 }
 
 // FindNode do
 func (d *DNSData) FindNode(name string, create bool) *DNSNode {
-	return d.Root.findNode(reverseSlice(strings.Split(name, ".")), create)
+	return d.Root.findNode(reverseSlice(strings.Split(strings.Trim(name, "."), ".")), create)
 }
 
 // FindDomainNode do
 func (d *DNSData) FindDomainNode(name string) *DNSNode {
-	nameTokens := reverseSlice(strings.Split(name, "."))
+	nameTokens := reverseSlice(strings.Split(strings.Trim(name, "."), "."))
 	for i := 0; i < len(nameTokens); i++ {
 		n := d.Root.findNode(nameTokens[i:], false)
 		if n != nil {
