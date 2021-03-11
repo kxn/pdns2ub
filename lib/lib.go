@@ -226,6 +226,18 @@ func (d *DNSData) FindNode(name string, create bool) *DNSNode {
 	return d.Root.findNode(reverseSlice(strings.Split(name, ".")), create)
 }
 
+// FindDomainNode do
+func (d *DNSData) FindDomainNode(name string) *DNSNode {
+	nameTokens := reverseSlice(strings.Split(name, "."))
+	for i := 0; i < len(nameTokens); i++ {
+		n := d.Root.findNode(nameTokens[i:], false)
+		if n != nil {
+			return n
+		}
+	}
+	return nil
+}
+
 func (d *DNSData) addModel(r pdnsmodel.Record) {
 	domainType := ""
 	switch r.Domain.Type {
