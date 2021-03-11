@@ -37,7 +37,7 @@ func (r *dnsRecord) toString() string {
 	return fmt.Sprintf("%d IN %s %s", r.TTL, r.Type, r.Data)
 }
 
-func newRecordFromModel(s pdnsmodel.Record) dnsRecord {
+func newRecordFromModel(s pdnsmodel.Record) *dnsRecord {
 	r := dnsRecord{
 		Type: s.Type.String,
 		TTL:  int(s.TTL.Int32),
@@ -46,11 +46,18 @@ func newRecordFromModel(s pdnsmodel.Record) dnsRecord {
 	case "A", "AAAA", "PTR":
 		r.Data = s.Content.String
 	case "SOA":
-		r.Data = fmt.Sprintf("%s admin.%s %s", NormalizeFQDN(s.Domain.Name), NormalizeFQDN(s.Domain.Name), s.Content.String)
+		// Do not know why, but some poweradmin instances do not write domain and admin mail to SOA contents, need to handle this properly
+		if len(strings.Split(s.Content.String, " ")) == 5 {
+			r.Data = fmt.Sprintf("%s admin.%s %s", NormalizeFQDN(s.Domain.Name), NormalizeFQDN(s.Domain.Name), s.Content.String)
+		} else {
+			r.Data = s.Content.String
+		}
 	case "MX", "SRV":
 		r.Data = fmt.Sprintf("%d %s", s.Prio.Int32, s.Content.String)
+	default:
+		return nil
 	}
-	return r
+	return &r
 }
 
 type dnsRecords map[string][]dnsRecord
@@ -222,7 +229,9 @@ func (d *DNSData) addModel(r pdnsmodel.Record) {
 		// do nothing, this is not a domain that we can handle
 		return
 	}
-	d.addRecord(r.Name.String, newRecordFromModel(r))
+	if rc := newRecordFromModel(r); rc != nil {
+		d.addRecord(r.Name.String, *rc)
+	}
 	dm := d.findNode(r.Domain.Name, true)
 	if dm.DomainType == typeNone {
 		dm.DomainType = domainType
